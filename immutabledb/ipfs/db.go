@@ -1,12 +1,12 @@
 package immutabledb
 
 import (
-	"github.com/ipfs/go-ipfs/core"
-	dag "github.com/ipfs/go-ipfs/merkledag"
-	path "github.com/ipfs/go-ipfs/path"
-	repo "github.com/ipfs/go-ipfs/repo"
-	fsrepo "github.com/ipfs/go-ipfs/repo/fsrepo"
 	"github.com/keks/go-ipfs-colog/immutabledb"
+	"gx/ipfs/QmQs9UguUVkFC3hXsS6MyGu377GzUfZfraddPDazsfmc6t/go-ipfs/core"
+	dag "gx/ipfs/QmQs9UguUVkFC3hXsS6MyGu377GzUfZfraddPDazsfmc6t/go-ipfs/merkledag"
+	path "gx/ipfs/QmQs9UguUVkFC3hXsS6MyGu377GzUfZfraddPDazsfmc6t/go-ipfs/path"
+	repo "gx/ipfs/QmQs9UguUVkFC3hXsS6MyGu377GzUfZfraddPDazsfmc6t/go-ipfs/repo"
+	fsrepo "gx/ipfs/QmQs9UguUVkFC3hXsS6MyGu377GzUfZfraddPDazsfmc6t/go-ipfs/repo/fsrepo"
 
 	"context"
 	"log"
@@ -56,7 +56,7 @@ func (db ImmutableIPFS) Put(data []byte) string {
 		log.Fatal(err)
 	}
 
-	return k.Hash().B58String()
+	return k.B58String()
 }
 
 func (db ImmutableIPFS) Get(key string) []byte {

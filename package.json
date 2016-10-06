@@ -1,0 +1,22 @@
+{
+  "bugs": {
+    "url": "https://github.com/keks/go-ipfs-colog"
+  },
+  "gx": {
+    "dvcsimport": "github.com/keks/go-ipfs-colog",
+    "goversion": "1.7"
+  },
+  "gxDependencies": [
+    {
+      "hash": "QmQs9UguUVkFC3hXsS6MyGu377GzUfZfraddPDazsfmc6t",
+      "name": "go-ipfs",
+      "version": "0.4.3"
+    }
+  ],
+  "gxVersion": "0.4.0",
+  "language": "go",
+  "license": "MIT",
+  "name": "go-ipfs-colog",
+  "version": "0.1.0"
+}
+

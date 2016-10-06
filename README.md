@@ -1,24 +1,19 @@
-# go-ipfs-log
+# go-ipfs-colog
 
-Learning Go...
+colog is a *co*ncurrent *log*. In the JS version of Orbit it is currently calle log, but in many contexts a log is a linear sequence of events. To avoid confusion, the Go version was named colog.
 
-## Build
-```
-go build
-```
+## Installing
+I wish `go install github.com/keks/go-ipfs-colog` would suffice, but we're not quite there yet. Also this package is not gx'd yet.
 
 ## Test
-```
-go test github.com/haadcode/go-ipfs-log/appendonlylog
-```
+Once successfully installed
 
+```
+go test github.com/keks/go-ipfs-colog
+```
+does the trick.
 
 ## Run
 ```
-./go-ipfs-log
-```
-
-## Benchmark
-```
-go test github.com/haadcode/go-ipfs-log/appendonlylog -bench .
+ipfs-colog
 ```

@@ -1,4 +1,4 @@
-package appendonlylog
+package colog
 
 import (
 	"bytes"
@@ -23,19 +23,19 @@ func TestNew(t *testing.T) {
 	var log1 = New(id, ipfsdb)
 
 	if log1 == nil {
-		t.Errorf("Couldn't create a log")
+		t.Fatalf("Couldn't create a log")
 	}
 
 	if log1.Id != id {
-		t.Errorf("Id not set")
+		t.Fatalf("Id not set")
 	}
 
 	if log1.db == nil {
-		t.Errorf("DB not set")
+		t.Fatalf("DB not set")
 	}
 
 	if len(log1.Items()) != 0 {
-		t.Errorf("Items not empty")
+		t.Fatalf("Items not empty")
 	}
 }
 
@@ -47,23 +47,25 @@ func TestAdd(t *testing.T) {
 	one := log1.Add(value1)
 
 	if one == nil {
-		t.Errorf("Entry was not added")
+		t.Fatal("Entry was not added")
 	}
 
-	if strings.Compare(one.Key, hash1) != 0 {
-		t.Errorf("Wrong key: %s", one.Key)
+	if strings.Compare(string(one.Hash), hash1) != 0 {
+		t.Fatalf("Wrong key: %s", one.Hash)
 	}
 
 	if bytes.Compare(one.Value, value1) != 0 {
-		t.Errorf("Wrong key: %s", one.Key)
+		t.Fatalf("Wrong key: %s", one.Hash)
 	}
 
-	if len(one.Next) != 0 {
-		t.Errorf("Wrong next reference: %s", one.Next)
+	if len(one.Prev) != 1 && one.Prev.Sorted()[0] == "" {
+		t.Fatalf("Wrong next reference: %s", one.Prev)
 	}
+
+	t.Logf("%#v\n", one)
 
 	if len(log1.Items()) != 1 {
-		t.Errorf("Wrong items count: %i", len(log1.Items()))
+		t.Fatalf("Wrong items count: %d", len(log1.Items()))
 	}
 }
 
@@ -72,13 +74,13 @@ func ExampleAdd_one() {
 
 	one := log1.Add(value1)
 
-	fmt.Println(one.Key)
+	fmt.Println(one.Hash)
 	fmt.Println(string(one.Value))
-	fmt.Println(one.Next)
+	fmt.Println(one.Prev)
 	// Output:
 	// QmX96xhp6cUB1YE5nqZsmKHbZFiAEderPc3gapGdwAoEod
 	// Hello1
-	// []
+	// map[:{}]
 }
 
 func ExampleAdd_two() {
@@ -89,9 +91,9 @@ func ExampleAdd_two() {
 
 	items := log1.Items()
 	fmt.Println(len(items))
-	fmt.Println(items[1].Key)
+	fmt.Println(items[1].Hash)
 	fmt.Println(string(items[1].Value))
-	fmt.Println(items[1].Next[0].Key)
+	fmt.Println(log1.EntryFromHash(items[1].Prev.Sorted()[0]).Hash)
 	// Output:
 	// 2
 	// Qme39B2h1QTDYAwCa4gXa6DB6R3TAFaG2Z8HF48U1wkKE6
@@ -111,15 +113,15 @@ func ExampleAdd_three() {
 	fmt.Println(string(items[0].Value))
 	fmt.Println(string(items[1].Value))
 	fmt.Println(string(items[2].Value))
-	fmt.Println(items[0].Next)
-	fmt.Println(items[1].Next[0].Key)
-	fmt.Println(items[2].Next[0].Key)
+	fmt.Println(items[0].Prev)
+	fmt.Println(log1.EntryFromHash(items[1].Prev.Sorted()[0]).Hash)
+	fmt.Println(log1.EntryFromHash(items[2].Prev.Sorted()[0]).Hash)
 	// Output:
 	// 3
 	// Hello1
 	// Hello2
 	// Hello3
-	// []
+	// map[:{}]
 	// QmX96xhp6cUB1YE5nqZsmKHbZFiAEderPc3gapGdwAoEod
 	// Qme39B2h1QTDYAwCa4gXa6DB6R3TAFaG2Z8HF48U1wkKE6
 }
@@ -141,34 +143,17 @@ func TestJoin(t *testing.T) {
 	log1.Add(value1)
 	log2.Add(value2)
 
-	log3 := log1.Join(log2)
-	items := log3.Items()
-	first := items[0]
-	second := items[1]
+	log1.Join(log2)
+	items := log1.Items()
 
 	if len(items) != 2 {
-		t.Errorf("Wrong number of entries: %i", len(items))
-	}
-
-	if log3.Id != log1.Id {
-		t.Errorf("Wrong id: %s", log3.Id)
-	}
-
-	if bytes.Compare(first.Value, value1) != 0 {
-		t.Errorf("Wrong value: %s", string(first.Value))
-	}
-
-	if bytes.Compare(second.Value, value2) != 0 {
-		t.Errorf("Wrong value: %s", string(second.Value))
+		t.Fatalf("Wrong number of entries: %i", len(items))
 	}
 
 	// Make sure the joined log doesn't have pointers to the joined logs
 	log1.Add(value1)
 	log2.Add(value2)
 
-	if len(log3.Items()) != 2 {
-		t.Errorf("Wrong number of entries: %i", len(log3.Items()))
-	}
 }
 
 func ExampleJoin_one() {
@@ -178,23 +163,23 @@ func ExampleJoin_one() {
 	log1.Add(value1)
 	log2.Add(value2)
 
-	log3 := log1.Join(log2)
+	log1.Join(log2)
 
-	items := log3.Items()
+	items := log1.Items()
 	first := items[0]
 	second := items[1]
 
 	fmt.Println(len(items))
-	fmt.Println(first.Key)
-	fmt.Println(second.Key)
+	fmt.Println(first.Hash)
+	fmt.Println(second.Hash)
 	fmt.Println(string(first.Value))
 	fmt.Println(string(second.Value))
 	// Output:
 	// 2
-	// QmX96xhp6cUB1YE5nqZsmKHbZFiAEderPc3gapGdwAoEod
 	// Qme39B2h1QTDYAwCa4gXa6DB6R3TAFaG2Z8HF48U1wkKE6
-	// Hello1
+	// QmX96xhp6cUB1YE5nqZsmKHbZFiAEderPc3gapGdwAoEod
 	// Hello2
+	// Hello1
 }
 
 func BenchmarkJoin(b *testing.B) {

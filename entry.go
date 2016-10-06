@@ -1,10 +1,7 @@
-package appendonlylog
-
-import "container/list"
+package colog
 
 type Entry struct {
-	list.Element
-	Key   string
+	Hash
 	Value []byte
-	Next  []*Entry
+	Prev  HashSet
 }

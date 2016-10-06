@@ -25,7 +25,7 @@ then build and install the package:
 go install . ./immutabledb/...
 ```
 
-The executable located in `cmd/ipfs-colog` is not done yet. That is also why the immutabledb for ipfs is not done yet.
+The executable located in `cmd/ipfs-colog` is not done yet. That is also why the immutabledb for ipfs is not build by default.
 
 ## Test
 Once successfully installed

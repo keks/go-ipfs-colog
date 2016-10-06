@@ -3,12 +3,12 @@ package colog
 import (
 	"bytes"
 	"fmt"
-	db "github.com/haadcode/go-ipfs-log/immutabledb/ipfs"
+	db "github.com/keks/go-ipfs-colog/immutabledb/ipfs"
 	"strings"
 	"testing"
 )
 
-var dataDirectory = "/tmp/go-ipfs-log-dev"
+var dataDirectory = "/tmp/go-ipfs-colog-dev"
 var ipfsdb = db.Open(dataDirectory)
 
 var id = "abc"

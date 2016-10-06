@@ -1,12 +1,12 @@
 package main
 
 import (
-	"github.com/haadcode/go-ipfs-log/appendonlylog"
-	db "github.com/haadcode/go-ipfs-log/immutabledb/ipfs"
+	"github.com/keks/go-ipfs-colog/appendonlylog"
+	db "github.com/keks/go-ipfs-colog/immutabledb/ipfs"
 	"log"
 )
 
-var dataDirectory = "/tmp/go-ipfs-log-dev"
+var dataDirectory = "/tmp/go-ipfs-colog-dev"
 var ipfsdb = db.Open(dataDirectory)
 
 var log1 = appendonlylog.New("abc", ipfsdb)
@@ -24,7 +24,7 @@ func printLog(l *appendonlylog.AppendOnlyLog) {
 }
 
 func main() {
-	log.Println("-- go-ipfs-log --")
+	log.Println("-- go-ipfs-colog --")
 	log.Println()
 
 	one := log1.Add([]byte("Hallo welt!"))

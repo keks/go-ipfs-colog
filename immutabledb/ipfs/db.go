@@ -1,12 +1,12 @@
 package immutabledb
 
 import (
-	"github.com/haadcode/go-ipfs-log/immutabledb/interface"
 	"github.com/ipfs/go-ipfs/core"
 	dag "github.com/ipfs/go-ipfs/merkledag"
 	path "github.com/ipfs/go-ipfs/path"
 	repo "github.com/ipfs/go-ipfs/repo"
 	fsrepo "github.com/ipfs/go-ipfs/repo/fsrepo"
+	"github.com/keks/go-ipfs-colog/immutabledb"
 
 	"context"
 	"log"

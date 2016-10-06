@@ -2,7 +2,7 @@ package colog
 
 import (
 	"errors"
-	"github.com/haadcode/go-ipfs-log/immutabledb/interface"
+	"github.com/keks/go-ipfs-colog/immutabledb"
 	"log"
 )
 

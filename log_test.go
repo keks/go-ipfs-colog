@@ -84,7 +84,7 @@ func ExampleAdd_one() {
 	// Output:
 	// QmbiruS6UMT6gT3JBHtZNWKitEssyUQzYu8k4gGd6rhzNc
 	// Hello1
-	// map[:{}]
+	// { null }
 }
 
 func ExampleAdd_two() {
@@ -138,7 +138,7 @@ func ExampleAdd_three() {
 	// Hello1
 	// Hello2
 	// Hello3
-	// map[:{}]
+	// { null }
 	// QmbiruS6UMT6gT3JBHtZNWKitEssyUQzYu8k4gGd6rhzNc
 	// QmdezppSoeGZmyYQZEuiUTU4cxTqyVfiwBct7D5iosY6zN
 }

@@ -1,21 +1,19 @@
 package colog
 
 import (
-	"bytes"
 	"fmt"
-	db "github.com/keks/go-ipfs-colog/immutabledb/ipfs"
+	db "github.com/keks/go-ipfs-colog/immutabledb/ipfs-api"
 	"strings"
 	"testing"
 )
 
-var dataDirectory = "/tmp/go-ipfs-colog-dev"
-var ipfsdb = db.Open(dataDirectory)
+var ipfsdb = db.New()
 
 var id = "abc"
-var value1 = []byte("Hello1")
-var value2 = []byte("Hello2")
-var value3 = []byte("Hello3")
-var hash1 = "QmX96xhp6cUB1YE5nqZsmKHbZFiAEderPc3gapGdwAoEod"
+var value1 = "Hello1"
+var value2 = "Hello2"
+var value3 = "Hello3"
+var hash1 = "QmbiruS6UMT6gT3JBHtZNWKitEssyUQzYu8k4gGd6rhzNc"
 
 /* Create */
 
@@ -44,7 +42,10 @@ func TestNew(t *testing.T) {
 func TestAdd(t *testing.T) {
 	var log1 = New(id, ipfsdb)
 
-	one := log1.Add(value1)
+	one, err := log1.Add(value1)
+	if err != nil {
+		t.Fatal(err)
+	}
 
 	if one == nil {
 		t.Fatal("Entry was not added")
@@ -54,7 +55,7 @@ func TestAdd(t *testing.T) {
 		t.Fatalf("Wrong key: %s", one.Hash)
 	}
 
-	if bytes.Compare(one.Value, value1) != 0 {
+	if strings.Compare(one.GetString(), value1) != 0 {
 		t.Fatalf("Wrong key: %s", one.Hash)
 	}
 
@@ -72,13 +73,16 @@ func TestAdd(t *testing.T) {
 func ExampleAdd_one() {
 	var log1 = New(id, ipfsdb)
 
-	one := log1.Add(value1)
+	one, err := log1.Add(value1)
+	if err != nil {
+		panic(err)
+	}
 
 	fmt.Println(one.Hash)
-	fmt.Println(string(one.Value))
+	fmt.Println(one.GetString())
 	fmt.Println(one.Prev)
 	// Output:
-	// QmX96xhp6cUB1YE5nqZsmKHbZFiAEderPc3gapGdwAoEod
+	// QmbiruS6UMT6gT3JBHtZNWKitEssyUQzYu8k4gGd6rhzNc
 	// Hello1
 	// map[:{}]
 }
@@ -92,13 +96,18 @@ func ExampleAdd_two() {
 	items := log1.Items()
 	fmt.Println(len(items))
 	fmt.Println(items[1].Hash)
-	fmt.Println(string(items[1].Value))
-	fmt.Println(log1.EntryFromHash(items[1].Prev.Sorted()[0]).Hash)
+	fmt.Println(string(items[1].GetString()))
+	e, err := log1.Get(items[1].Prev.Sorted()[0])
+	if err != nil {
+		panic(err)
+	}
+
+	fmt.Println(e.Hash)
 	// Output:
 	// 2
-	// Qme39B2h1QTDYAwCa4gXa6DB6R3TAFaG2Z8HF48U1wkKE6
+	// QmdezppSoeGZmyYQZEuiUTU4cxTqyVfiwBct7D5iosY6zN
 	// Hello2
-	// QmX96xhp6cUB1YE5nqZsmKHbZFiAEderPc3gapGdwAoEod
+	// QmbiruS6UMT6gT3JBHtZNWKitEssyUQzYu8k4gGd6rhzNc
 }
 
 func ExampleAdd_three() {
@@ -110,20 +119,28 @@ func ExampleAdd_three() {
 
 	items := log1.Items()
 	fmt.Println(len(items))
-	fmt.Println(string(items[0].Value))
-	fmt.Println(string(items[1].Value))
-	fmt.Println(string(items[2].Value))
+	fmt.Println(string(items[0].GetString()))
+	fmt.Println(string(items[1].GetString()))
+	fmt.Println(string(items[2].GetString()))
 	fmt.Println(items[0].Prev)
-	fmt.Println(log1.EntryFromHash(items[1].Prev.Sorted()[0]).Hash)
-	fmt.Println(log1.EntryFromHash(items[2].Prev.Sorted()[0]).Hash)
+	e1, err := log1.Get(items[1].Prev.Sorted()[0])
+	if err != nil {
+		panic(err)
+	}
+	fmt.Println(e1.Hash)
+	e2, err := log1.Get(items[2].Prev.Sorted()[0])
+	if err != nil {
+		panic(err)
+	}
+	fmt.Println(e2.Hash)
 	// Output:
 	// 3
 	// Hello1
 	// Hello2
 	// Hello3
 	// map[:{}]
-	// QmX96xhp6cUB1YE5nqZsmKHbZFiAEderPc3gapGdwAoEod
-	// Qme39B2h1QTDYAwCa4gXa6DB6R3TAFaG2Z8HF48U1wkKE6
+	// QmbiruS6UMT6gT3JBHtZNWKitEssyUQzYu8k4gGd6rhzNc
+	// QmdezppSoeGZmyYQZEuiUTU4cxTqyVfiwBct7D5iosY6zN
 }
 
 func BenchmarkAdd(b *testing.B) {
@@ -172,14 +189,14 @@ func ExampleJoin_one() {
 	fmt.Println(len(items))
 	fmt.Println(first.Hash)
 	fmt.Println(second.Hash)
-	fmt.Println(string(first.Value))
-	fmt.Println(string(second.Value))
+	fmt.Println(string(first.GetString()))
+	fmt.Println(string(second.GetString()))
 	// Output:
 	// 2
-	// Qme39B2h1QTDYAwCa4gXa6DB6R3TAFaG2Z8HF48U1wkKE6
-	// QmX96xhp6cUB1YE5nqZsmKHbZFiAEderPc3gapGdwAoEod
-	// Hello2
+	// QmbiruS6UMT6gT3JBHtZNWKitEssyUQzYu8k4gGd6rhzNc
+	// QmXgHKWQEG6NwpqJMvvvBdMrzWqPNo6cLtZr4BpZHFvrXV
 	// Hello1
+	// Hello2
 }
 
 func BenchmarkJoin(b *testing.B) {

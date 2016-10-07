@@ -1,13 +1,16 @@
 package colog
 
 import (
-	"errors"
-	"github.com/keks/go-ipfs-colog/immutabledb"
+	"encoding/json"
 	"log"
+
+	"github.com/keks/go-ipfs-colog/immutabledb"
 )
 
+// hash is the base58 string representation of a multihash
 type Hash string
 
+// CoLog is a concurrent log
 type CoLog struct {
 	Id string
 	db immutabledb.ImmutableDB
@@ -17,6 +20,7 @@ type CoLog struct {
 	heads HashSet
 }
 
+// New returns a concurrent log
 func New(id string, db immutabledb.ImmutableDB) *CoLog {
 	// TODO: iterate over db to build index
 	// TODO: make index persistent
@@ -32,64 +36,101 @@ func New(id string, db immutabledb.ImmutableDB) *CoLog {
 	}
 }
 
-func (l *CoLog) Add(data []byte) *Entry {
-	hash := Hash(l.db.Put(data))
-
+// Add adds data to the colog and returns the resulting entry
+func (l *CoLog) Add(data interface{}) (*Entry, error) {
+	// prepare entry
 	e := &Entry{
-		Hash:  Hash(hash),
-		Value: data,
-		Prev:  l.heads.Copy(),
+		Prev: l.heads.Copy(),
 	}
 
-	l.heads = make(HashSet)
-	l.heads.Set(hash)
+	// set value
+	err := e.set(data)
+	if err != nil {
+		return nil, err
+	}
 
+	// use empty string to mark root entry
 	if len(e.Prev) == 0 {
 		e.Prev.Set("")
 	}
 
+	eBytes, err := json.Marshal(e)
+	if err != nil {
+		return nil, err
+	}
+
+	// store entry
+	hStr, err := l.db.Put(eBytes)
+	if err != nil {
+		return nil, err
+	}
+
+	// set hash
+	e.Hash = Hash(hStr)
+
+	// update index
 	for h := range e.Prev {
 		l.next.Add(h, e.Hash)
 		l.prev.Add(e.Hash, h)
 	}
 
-	return e
+	// update local heads
+	l.heads = make(HashSet)
+	l.heads.Set(e.Hash)
+
+	return e, err
 }
 
-func (l *CoLog) EntryFromHash(h Hash) Entry {
-	data := l.db.Get(string(h))
+// Get returns an entry from the db.
+func (l *CoLog) Get(h Hash) (*Entry, error) {
+	e := NewEntry()
 
-	return Entry{
-		Hash:  h,
-		Value: data,
-		Prev:  l.prev[h],
+	eBytes, err := l.db.Get(string(h))
+	if err != nil {
+		return nil, err
 	}
+
+	err = json.Unmarshal(eBytes, e)
+	if err != nil {
+		return nil, err
+	}
+
+	e.Hash = h
+
+	return e, nil
 }
 
-var CorruptLogErr = errors.New("other log corrupt, hash doesn't match")
-
+// Contains returns whether an Entry with Hash h is stored
 func (l *CoLog) Contains(h Hash) bool {
 	_, ok := l.prev[h]
+
 	return ok
 }
 
+// Join merges colog `other' into `l'
 func (l *CoLog) Join(other *CoLog) error {
 	newHeads := make(HashSet)
 
 	for h := range other.prev {
 		// skip known hashes
-		if _, ok := l.prev[h]; ok {
+		if l.Contains(h) {
 			continue
 		}
 
-		e := other.EntryFromHash(h)
+		e, err := other.Get(h)
+		if err != nil {
+			return err
+		}
+
+		eBytes, err := json.Marshal(e)
+		if err != nil {
+			return err
+		}
 
 		// add to db
-		h_ := Hash(l.db.Put(e.Value))
-
-		// check if hash matches
-		if h != h_ {
-			return CorruptLogErr
+		_, err = l.db.Put(eBytes)
+		if err != nil {
+			return err
 		}
 
 		// fix up index
@@ -144,8 +185,8 @@ func (l *CoLog) Join(other *CoLog) error {
 }
 
 // Items returns the Entries in canonical order
-func (l *CoLog) Items() []Entry {
-	out := make([]Entry, 0, len(l.prev))
+func (l *CoLog) Items() []*Entry {
+	out := make([]*Entry, 0, len(l.prev))
 
 	// set up hash stack to track concurrentness
 	var stack []Hash
@@ -165,7 +206,14 @@ func (l *CoLog) Items() []Entry {
 
 	for len(stack) > 0 {
 		h := pop()
-		e := l.EntryFromHash(h)
+		if h == "" {
+			continue
+		}
+		e, err := l.Get(h)
+		if err != nil {
+			log.Printf("Items(): error fetching item with hash %#s. continuing.\n", h)
+		}
+
 		out = append(out, e)
 
 		push(l.next[h].Sorted())
@@ -175,10 +223,16 @@ func (l *CoLog) Items() []Entry {
 }
 
 func (l *CoLog) Print() {
+	log.Println("next:", l.next)
+	log.Println("prev:", l.prev)
+
 	for _, e := range l.Items() {
 		log.Println("Entry:", e.Hash)
 
-		data := l.db.Get(string(e.Hash))
+		data, err := l.db.Get(string(e.Hash))
+		if err != nil {
+			log.Panic(e.Hash, err)
+		}
 
 		log.Println("Data:", string(data))
 
@@ -190,4 +244,8 @@ func (l *CoLog) Print() {
 
 		log.Println()
 	}
+}
+
+func (l *CoLog) Heads() []Hash {
+	return l.heads.Sorted()
 }

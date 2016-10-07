@@ -48,27 +48,27 @@ func (db ImmutableIPFS) Close() error {
 	return nil
 }
 
-func (db ImmutableIPFS) Put(data []byte) string {
+func (db ImmutableIPFS) Put(data []byte) (string, error) {
 	obj := dag.NodeWithData(data)
 
 	k, err := db.Node.DAG.Add(obj)
 	if err != nil {
-		log.Fatal(err)
+		return "", err
 	}
 
-	return k.B58String()
+	return k.B58String(), nil
 }
 
-func (db ImmutableIPFS) Get(key string) []byte {
+func (db ImmutableIPFS) Get(key string) ([]byte, error) {
 	ctx := context.Background()
 	fpath := path.Path(key)
 
 	object, err := core.Resolve(ctx, db.Node, fpath)
 	if err != nil {
-		log.Fatal(err)
+		return nil, err
 	}
 
 	node := dag.NodeWithData(object.Data())
 
-	return node.Data()
+	return node.Data(), nil
 }

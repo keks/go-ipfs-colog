@@ -1,7 +1,7 @@
 package immutabledb
 
 type ImmutableDB interface {
-	Put([]byte) string
-	Get(string) []byte
+	Put([]byte) (string, error)
+	Get(string) ([]byte, error)
 	Close() error
 }

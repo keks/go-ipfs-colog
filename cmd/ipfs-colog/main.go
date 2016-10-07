@@ -1,22 +1,23 @@
 package main
 
 import (
-	"github.com/keks/go-ipfs-colog/appendonlylog"
-	db "github.com/keks/go-ipfs-colog/immutabledb/ipfs"
+	"github.com/keks/go-ipfs-colog"
+	db "github.com/keks/go-ipfs-colog/immutabledb/ipfs-api"
+	//"gx/ipfs/QmVcLF2CgjQb5BWmYFWsDfxDjbzBfcChfdHRedxeL3dV4K/cli"
+
 	"log"
 )
 
-var dataDirectory = "/tmp/go-ipfs-colog-dev"
-var ipfsdb = db.Open(dataDirectory)
+var ipfsdb = db.New()
 
-var log1 = appendonlylog.New("abc", ipfsdb)
-var log2 = appendonlylog.New("def", ipfsdb)
+var log1 = colog.New("abc", ipfsdb)
+var log2 = colog.New("def", ipfsdb)
 
-func printLog(l *appendonlylog.AppendOnlyLog) {
+func printLog(l *colog.CoLog) {
 	log.Println()
 	log.Println("--------------------")
 	log.Println("Log Id:", l.Id)
-	log.Println("Head:", l.Head().Key)
+	log.Println("Heads:", l.Heads())
 	log.Println("Items:", len(l.Items()))
 	log.Println("--------------------")
 	log.Println()
@@ -27,27 +28,27 @@ func main() {
 	log.Println("-- go-ipfs-colog --")
 	log.Println()
 
-	one := log1.Add([]byte("Hallo welt!"))
-	log.Println("Added one entry:", one.Key)
+	one, err := log1.Add("Hallo welt!")
+	log.Println("Added one entry:", one.Hash, "err:", err)
 
-	two := log2.Add([]byte("Hello world!"))
-	log.Println("Added one entry:", two.Key)
+	two, err := log2.Add("Hello world!")
+	log.Println("Added one entry:", two.Hash, "err:", err)
 
-	log1.Add([]byte("Data datA"))
-	log1.Add([]byte("12345"))
+	log1.Add("Data datA")
+	log1.Add("12345")
 
 	printLog(log1)
 	printLog(log2)
 
-	log2.Add([]byte("12345")) // add double entry to second log, this should not be in log3 twice
+	log2.Add("12345") // add double entry to second log, this should not be in log3 twice
 
-	log3 := log1.Join(log2)
-	printLog(log3)
+	log1.Join(log2)
+	printLog(log1)
 
-	log3.Add([]byte("88"))
+	log1.Add([]byte("88"))
 	log2.Add([]byte("777"))
-	log4 := log3.Join(log2)
-	printLog(log4)
+	log1.Join(log2)
+	printLog(log1)
 
 	ipfsdb.Close()
 }

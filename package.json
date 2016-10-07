@@ -11,12 +11,17 @@
       "hash": "QmQs9UguUVkFC3hXsS6MyGu377GzUfZfraddPDazsfmc6t",
       "name": "go-ipfs",
       "version": "0.4.3"
+    },
+    {
+      "hash": "QmRvQqqJMrhg6YYFCfLdcMktvnUNpLkdLH8LVcgGhUGVPJ",
+      "name": "gx",
+      "version": "0.9.1"
     }
   ],
   "gxVersion": "0.4.0",
   "language": "go",
   "license": "MIT",
   "name": "go-ipfs-colog",
-  "version": "0.1.1"
+  "version": "0.2.0"
 }
 

@@ -1,6 +1,7 @@
 package colog
 
 import (
+	"encoding/json"
 	"sort"
 )
 
@@ -45,4 +46,23 @@ func (s HashSet) Sorted() []Hash {
 	}
 
 	return hs
+}
+
+func (s HashSet) MarshalJSON() ([]byte, error) {
+	return json.Marshal(s.Sorted())
+}
+
+func (s HashSet) UnmarshalJSON(in []byte) error {
+	var hs []Hash
+
+	err := json.Unmarshal(in, &hs)
+	if err != nil {
+		return err
+	}
+
+	for _, h := range hs {
+		s.Set(h)
+	}
+
+	return nil
 }

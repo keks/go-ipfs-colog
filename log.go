@@ -186,14 +186,21 @@ func (l *CoLog) Join(other *CoLog) error {
 
 // Items returns the Entries in canonical order
 func (l *CoLog) Items() []*Entry {
+	// output Entry slice
 	out := make([]*Entry, 0, len(l.prev))
+
+	// keeps track how many of the revious pointers have been added to out already
+	addedPrevs := map[Hash]int{}
 
 	// set up hash stack to track concurrentness
 	var stack []Hash
 
-	push := func(hs []Hash) {
+	// push to stack
+	push := func(hs ...Hash) {
 		stack = append(stack, hs...)
 	}
+
+	//pop from stack
 	pop := func() Hash {
 		h := stack[len(stack)-1]
 		stack = stack[:len(stack)-1]
@@ -205,18 +212,34 @@ func (l *CoLog) Items() []*Entry {
 	stack = l.next[""].Sorted()
 
 	for len(stack) > 0 {
+		// pop hash from stack
 		h := pop()
+
+		//ignore root
 		if h == "" {
 			continue
 		}
+
+		// get Entry
 		e, err := l.Get(h)
 		if err != nil {
 			log.Printf("Items(): error fetching item with hash %#s. continuing.\n", h)
 		}
 
+		// append Entry
 		out = append(out, e)
 
-		push(l.next[h].Sorted())
+		// mark that an Entry was added in all next hashes
+		for hNext := range l.next[h] {
+			addedPrevs[hNext]++
+		}
+
+		// push next hashes, but only if all past hashes have been added
+		for _, hNext := range l.next[h].Sorted() {
+			if addedPrevs[hNext] == len(l.prev[hNext]) {
+				push(hNext)
+			}
+		}
 	}
 
 	return out

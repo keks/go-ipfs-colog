@@ -1,6 +1,7 @@
 package colog
 
 import (
+	"bytes"
 	"encoding/json"
 	"sort"
 )
@@ -65,4 +66,26 @@ func (s HashSet) UnmarshalJSON(in []byte) error {
 	}
 
 	return nil
+}
+
+func (s HashSet) String() string {
+
+	hs := s.Sorted()
+
+	buf := bytes.NewBufferString("{ ")
+
+	if len(hs) > 0 {
+		buf.WriteString(hs[0].String())
+
+		hs = hs[1:]
+
+		for _, h := range hs {
+			buf.WriteString(", " + h.String())
+		}
+
+	}
+
+	buf.WriteString(" }")
+
+	return buf.String()
 }

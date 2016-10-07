@@ -7,8 +7,17 @@ import (
 	"github.com/keks/go-ipfs-colog/immutabledb"
 )
 
+var joinpass int
+
 // hash is the base58 string representation of a multihash
 type Hash string
+
+func (h Hash) String() string {
+	if h == "" {
+		return "null"
+	}
+	return string(h)
+}
 
 // CoLog is a concurrent log
 type CoLog struct {
@@ -102,18 +111,23 @@ func (l *CoLog) Get(h Hash) (*Entry, error) {
 
 // Contains returns whether an Entry with Hash h is stored
 func (l *CoLog) Contains(h Hash) bool {
-	_, ok := l.prev[h]
+	hs, ok := l.prev[h]
 
-	return ok
+	delete(hs, "")
+
+	return ok && len(h) > 0
 }
 
 // Join merges colog `other' into `l'
 func (l *CoLog) Join(other *CoLog) error {
+	defer func() { joinpass++ }()
+
 	newHeads := make(HashSet)
 
 	for h := range other.prev {
 		// skip known hashes
 		if l.Contains(h) {
+			//	log.Printf("join#%d %v <- %v - entry %v already there - continuing\n", joinpass, l.Id, other.Id, h)
 			continue
 		}
 
@@ -131,12 +145,6 @@ func (l *CoLog) Join(other *CoLog) error {
 		_, err = l.db.Put(eBytes)
 		if err != nil {
 			return err
-		}
-
-		// fix up index
-		for hPrev := range e.Prev {
-			l.next.Add(hPrev, e.Hash)
-			l.prev.Add(e.Hash, hPrev)
 		}
 
 		// fix heads
@@ -177,6 +185,13 @@ func (l *CoLog) Join(other *CoLog) error {
 			//  => not head anymore
 			// do nothing
 		}
+
+		// fix up index
+		for hPrev := range e.Prev {
+			l.next.Add(hPrev, e.Hash)
+			l.prev.Add(e.Hash, hPrev)
+		}
+
 	}
 
 	l.heads = newHeads
@@ -193,7 +208,7 @@ func (l *CoLog) Items() []*Entry {
 	addedPrevs := map[Hash]int{}
 
 	// set up hash stack to track concurrentness
-	var stack []Hash
+	var stack = []Hash{}
 
 	// push to stack
 	push := func(hs ...Hash) {
@@ -209,7 +224,7 @@ func (l *CoLog) Items() []*Entry {
 	}
 
 	// start with root nodes: nodes with prev=[""]
-	stack = l.next[""].Sorted()
+	push(l.next[""].Sorted()...)
 
 	for len(stack) > 0 {
 		// pop hash from stack

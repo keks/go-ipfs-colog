@@ -1,3 +1,4 @@
-go-ipfs-log
+cmd/ipfs-colog/ipfs-colog
 pkg/
 *sublime*
+*.swp

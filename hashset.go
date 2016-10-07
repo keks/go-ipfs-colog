@@ -24,8 +24,8 @@ func (s HashSet) IsSet(h Hash) bool {
 func (s HashSet) Copy() HashSet {
 	s_ := make(HashSet)
 
-	for k, v := range s {
-		s_[k] = v
+	for k := range s {
+		s_.Set(k)
 	}
 
 	return s_

@@ -238,7 +238,8 @@ func (l *CoLog) Items() []*Entry {
 		// get Entry
 		e, err := l.Get(h)
 		if err != nil {
-			log.Printf("Items(): error fetching item with hash %#s. continuing.\n", h)
+			log.Printf("error fetching item with hash %#s. continuing.\n", h)
+			continue
 		}
 
 		// append Entry
@@ -286,4 +287,62 @@ func (l *CoLog) Print() {
 
 func (l *CoLog) Heads() []Hash {
 	return l.heads.Sorted()
+}
+
+func (l *CoLog) FetchFromHead(head Hash) error {
+	if _, ok := l.prev[head]; ok {
+		return nil
+	}
+
+	// set up hash stack to track concurrentness
+	var stack = []Hash{}
+
+	// push to stack
+	push := func(hs ...Hash) {
+		stack = append(stack, hs...)
+	}
+
+	//pop from stack
+	pop := func() Hash {
+		h := stack[len(stack)-1]
+		stack = stack[:len(stack)-1]
+
+		return h
+	}
+
+	// start with root nodes: nodes with prev=[""]
+	push(head)
+
+	for len(stack) > 0 {
+		// pop hash from stack
+		h := pop()
+
+		//ignore root
+		if h == "" {
+			continue
+		}
+
+		// check if already known
+		if _, ok := l.prev[head]; ok {
+			continue
+		}
+
+		// get Entry
+		e, err := l.Get(h)
+		if err != nil {
+			log.Printf("error fetching item with hash %#s. continuing.\n", h)
+			continue
+		}
+
+		for hPrev := range e.Prev {
+			// add to index
+			l.prev[h].Set(hPrev)
+			l.next[hPrev].Set(h)
+
+			// mark for recursion
+			push(hPrev)
+		}
+	}
+
+	return nil
 }

@@ -3,7 +3,7 @@ package colog
 import "encoding/json"
 
 type Entry struct {
-	Hash  `json:"-"`
+	Hash  Hash            `json:"-"`
 	Value json.RawMessage `json:"payload"`
 	Prev  HashSet         `json:"next"`
 }

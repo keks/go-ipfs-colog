@@ -3,52 +3,110 @@ package main
 import (
 	"github.com/keks/go-ipfs-colog"
 	db "github.com/keks/go-ipfs-colog/immutabledb/ipfs-api"
-	//"gx/ipfs/QmVcLF2CgjQb5BWmYFWsDfxDjbzBfcChfdHRedxeL3dV4K/cli"
+	"gx/ipfs/QmVcLF2CgjQb5BWmYFWsDfxDjbzBfcChfdHRedxeL3dV4K/cli"
 
+	"bufio"
+	"bytes"
+	"fmt"
+	"io"
 	"log"
+	"os"
+	"path"
 )
 
-var ipfsdb = db.New()
+var headFilePath string
+var l *colog.CoLog
 
-var log1 = colog.New("abc", ipfsdb)
-var log2 = colog.New("def", ipfsdb)
+func fail(reasons ...interface{}) {
+	fmt.Print("error: ")
+	fmt.Println(reasons...)
 
-func printLog(l *colog.CoLog) {
-	log.Println()
-	log.Println("--------------------")
-	log.Println("Log Id:", l.Id)
-	log.Println("Heads:", l.Heads())
-	log.Println("Items:", len(l.Items()))
-	log.Println("--------------------")
-	log.Println()
-	l.Print()
+	os.Exit(-1)
+}
+
+func init() {
+	headFilePath = path.Join(os.Getenv("HOME"), ".colog-heads")
+}
+
+func updateHeadFile(e *colog.Entry) error {
+	f, err := os.Create(headFilePath)
+	if err != nil {
+		return err
+	}
+
+	defer f.Close()
+
+	_, err = f.WriteString(string(e.Hash) + "\n")
+	return err
+}
+
+func prepareLog() (*colog.CoLog, error) {
+	ipfsdb := db.New()
+	l = colog.New("abc", ipfsdb)
+
+	f, err := os.Open(headFilePath)
+	if err != nil { // no state to recover; all good
+		log.Println("couldn't recover state; open err:", err)
+		return l, nil
+	}
+
+	defer f.Close()
+
+	bf := bufio.NewReader(f)
+
+	for {
+		line, err := bf.ReadString('\n')
+		if len(line) == 0 || err != nil {
+			break
+		}
+
+		err = l.FetchFromHead(colog.Hash(line))
+		if err != nil {
+			continue
+		}
+	}
+
+	return l, nil
+}
+
+var putCmd = cli.Command{
+	Name:      "add",
+	ShortName: "a",
+	Usage:     "add a value to the colog",
+	Category:  "simple",
+	Flags:     []cli.Flag{cli.BoolFlag{Name: "s"}},
+	Action: func(c *cli.Context) error {
+		var data interface{}
+
+		if c.Bool("s") {
+			data = c.Args()[0]
+		} else {
+			b := bytes.Buffer{}
+
+			io.Copy(&b, os.Stdin)
+			data = b.String()
+
+		}
+		e, err := l.Add(data)
+		if err != nil {
+			return err
+		}
+
+		fmt.Println(e)
+		return updateHeadFile(e)
+	},
 }
 
 func main() {
-	log.Println("-- go-ipfs-colog --")
-	log.Println()
+	var err error
+	l, err = prepareLog()
+	if err != nil {
+		fail(err)
+	}
 
-	one, err := log1.Add("Hallo welt!")
-	log.Println("Added one entry:", one.Hash, "err:", err)
-
-	two, err := log2.Add("Hello world!")
-	log.Println("Added one entry:", two.Hash, "err:", err)
-
-	log1.Add("Data datA")
-	log1.Add("12345")
-
-	printLog(log1)
-	printLog(log2)
-
-	log2.Add("12345") // add double entry to second log, this should not be in log3 twice
-
-	log1.Join(log2)
-	printLog(log1)
-
-	log1.Add([]byte("88"))
-	log2.Add([]byte("777"))
-	log1.Join(log2)
-	printLog(log1)
-
-	ipfsdb.Close()
+	app := cli.NewApp()
+	app.Name = "ipfs-colog"
+	app.Usage = "work with cologs"
+	app.Commands = []cli.Command{putCmd}
+	app.Run(os.Args)
 }

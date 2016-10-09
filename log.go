@@ -310,7 +310,7 @@ func (l *CoLog) FetchFromHead(head Hash) error {
 		return h
 	}
 
-	// start with root nodes: nodes with prev=[""]
+	// walk colog from head
 	push(head)
 
 	for len(stack) > 0 {
@@ -323,21 +323,29 @@ func (l *CoLog) FetchFromHead(head Hash) error {
 		}
 
 		// check if already known
-		if _, ok := l.prev[head]; ok {
+		if _, ok := l.prev[h]; ok {
 			continue
+		}
+
+		// set as head if no followups known
+		if nexts := l.next[h]; len(nexts) == 0 {
+			l.heads.Set(h)
 		}
 
 		// get Entry
 		e, err := l.Get(h)
 		if err != nil {
-			log.Printf("error fetching item with hash %#s. continuing.\n", h)
+			log.Printf("error fetching item with hash %#x. continuing.\n", h)
 			continue
 		}
 
 		for hPrev := range e.Prev {
+			// remove from heads in case it was there
+			l.heads.Unset(hPrev)
+
 			// add to index
-			l.prev[h].Set(hPrev)
-			l.next[hPrev].Set(h)
+			l.prev.Add(h, hPrev)
+			l.next.Add(hPrev, h)
 
 			// mark for recursion
 			push(hPrev)

@@ -83,9 +83,14 @@ var (
 		ShortName: "a",
 		Usage:     "add a value to the colog",
 		Flags: []cli.Flag{
-			cli.BoolFlag{Name: "r"},
-			cli.BoolFlag{Name: "s"},
-			cli.BoolFlag{Name: "v"},
+			cli.BoolFlag{
+				Name:  "r",
+				Usage: "add as new root node",
+			},
+			cli.BoolFlag{
+				Name:  "s",
+				Usage: "add string, not stdin",
+			},
 		},
 		Action: func(c *cli.Context) error {
 			var data interface{}
@@ -110,7 +115,7 @@ var (
 				return err
 			}
 
-			if c.Bool("v") {
+			if c.GlobalBool("verbose") {
 				fmt.Println("l:")
 				for _, e := range l.Items() {
 					fmt.Println(e)
@@ -126,7 +131,7 @@ var (
 				l = l_old
 			}
 
-			if !c.Bool("v") {
+			if !c.GlobalBool("verbose") {
 				fmt.Println(e)
 			}
 			return updateHeadFile(l)
@@ -171,5 +176,11 @@ func main() {
 	app.Name = "ipfs-colog"
 	app.Usage = "work with cologs"
 	app.Commands = []cli.Command{addCmd, printCmd, headsCmd}
+	app.Flags = []cli.Flag{
+		cli.BoolFlag{
+			Name:  "verbose",
+			Usage: "verbose output",
+		},
+	}
 	app.Run(os.Args)
 }

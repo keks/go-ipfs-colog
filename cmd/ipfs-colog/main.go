@@ -28,7 +28,7 @@ func init() {
 	headFilePath = path.Join(os.Getenv("HOME"), ".colog-heads")
 }
 
-func updateHeadFile(e *colog.Entry) error {
+func updateHeadFile(l *colog.CoLog) error {
 	f, err := os.Create(headFilePath)
 	if err != nil {
 		return err
@@ -36,12 +36,18 @@ func updateHeadFile(e *colog.Entry) error {
 
 	defer f.Close()
 
-	_, err = f.WriteString(string(e.Hash) + "\n")
-	return err
+	for _, h := range l.Heads() {
+		_, err = f.WriteString(string(h) + "\n")
+		if err != nil {
+			return err
+		}
+	}
+	return nil
 }
 
+var ipfsdb = db.New()
+
 func prepareLog() (*colog.CoLog, error) {
-	ipfsdb := db.New()
 	l = colog.New("abc", ipfsdb)
 
 	f, err := os.Open(headFilePath)
@@ -60,6 +66,8 @@ func prepareLog() (*colog.CoLog, error) {
 			break
 		}
 
+		line = line[:len(line)-1]
+
 		err = l.FetchFromHead(colog.Hash(line))
 		if err != nil {
 			continue
@@ -69,33 +77,88 @@ func prepareLog() (*colog.CoLog, error) {
 	return l, nil
 }
 
-var putCmd = cli.Command{
-	Name:      "add",
-	ShortName: "a",
-	Usage:     "add a value to the colog",
-	Category:  "simple",
-	Flags:     []cli.Flag{cli.BoolFlag{Name: "s"}},
-	Action: func(c *cli.Context) error {
-		var data interface{}
+var (
+	addCmd = cli.Command{
+		Name:      "add",
+		ShortName: "a",
+		Usage:     "add a value to the colog",
+		Flags: []cli.Flag{
+			cli.BoolFlag{Name: "r"},
+			cli.BoolFlag{Name: "s"},
+			cli.BoolFlag{Name: "v"},
+		},
+		Action: func(c *cli.Context) error {
+			var data interface{}
 
-		if c.Bool("s") {
-			data = c.Args()[0]
-		} else {
-			b := bytes.Buffer{}
+			l_old := l
 
-			io.Copy(&b, os.Stdin)
-			data = b.String()
+			if c.Bool("r") {
+				l = colog.New("abc", ipfsdb)
+			}
 
-		}
-		e, err := l.Add(data)
-		if err != nil {
-			return err
-		}
+			if c.Bool("s") {
+				data = c.Args()[0]
+			} else {
+				b := bytes.Buffer{}
 
-		fmt.Println(e)
-		return updateHeadFile(e)
-	},
-}
+				io.Copy(&b, os.Stdin)
+				data = b.String()
+
+			}
+			e, err := l.Add(data)
+			if err != nil {
+				return err
+			}
+
+			if c.Bool("v") {
+				fmt.Println("l:")
+				for _, e := range l.Items() {
+					fmt.Println(e)
+				}
+				fmt.Println("l_old:")
+				for _, e := range l_old.Items() {
+					fmt.Println(e)
+				}
+			}
+
+			if c.Bool("r") {
+				l_old.Join(l)
+				l = l_old
+			}
+
+			if !c.Bool("v") {
+				fmt.Println(e)
+			}
+			return updateHeadFile(l)
+		},
+	}
+
+	printCmd = cli.Command{
+		Name:      "print",
+		ShortName: "p",
+		Usage:     "print the log",
+		Action: func(c *cli.Context) error {
+			for _, e := range l.Items() {
+				fmt.Println(e)
+			}
+
+			return nil
+		},
+	}
+
+	headsCmd = cli.Command{
+		Name:      "heads",
+		ShortName: "hs",
+		Usage:     "print the heads",
+		Action: func(c *cli.Context) error {
+			for _, h := range l.Heads() {
+				fmt.Println(h)
+			}
+
+			return nil
+		},
+	}
+)
 
 func main() {
 	var err error
@@ -107,6 +170,6 @@ func main() {
 	app := cli.NewApp()
 	app.Name = "ipfs-colog"
 	app.Usage = "work with cologs"
-	app.Commands = []cli.Command{putCmd}
+	app.Commands = []cli.Command{addCmd, printCmd, headsCmd}
 	app.Run(os.Args)
 }

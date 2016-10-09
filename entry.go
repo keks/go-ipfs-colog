@@ -31,3 +31,7 @@ func (e *Entry) GetString() string {
 	json.Unmarshal(e.Value, &s)
 	return s
 }
+
+func (e *Entry) String() string {
+	return "{ " + e.Hash.String() + ": " + string(e.Value) + " " + e.Prev.String() + " }"
+}

@@ -4,8 +4,10 @@ import (
 	"fmt"
 )
 
-func checkadd(e *Entry, err error) {
+func checkadd(e *Entry, err error) *Entry {
 	check(err)
+
+	return e
 }
 
 func check(err error) {

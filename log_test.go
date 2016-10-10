@@ -51,14 +51,12 @@ func TestAdd(t *testing.T) {
 	}
 
 	if strings.Compare(one.GetString(), value1) != 0 {
-		t.Fatalf("Wrong key: %s", one.Hash)
+		t.Fatalf("Wrong value: %s", one.GetString())
 	}
 
 	if len(one.Prev) != 1 && one.Prev.Sorted()[0] == "" {
 		t.Fatalf("Wrong next reference: %s", one.Prev)
 	}
-
-	t.Logf("%#v\n", one)
 
 	if len(log1.Items()) != 1 {
 		t.Fatalf("Wrong items count: %d", len(log1.Items()))

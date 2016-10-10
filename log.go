@@ -80,6 +80,9 @@ func (l *CoLog) Add(data interface{}) (*Entry, error) {
 	l.heads = NewHashSet()
 	l.heads.Add(e.Hash)
 
+	// send it to watchers
+	l.chans.Send(e)
+
 	return e, err
 }
 
@@ -146,6 +149,9 @@ func (l *CoLog) Join(other *CoLog) error {
 		if err != nil {
 			return err
 		}
+
+		// send it to watchers
+		l.chans.Send(e)
 
 		// fix heads
 		for head := range l.heads {
@@ -263,11 +269,14 @@ func (l *CoLog) Items() []*Entry {
 	return out
 }
 
+// Heads returns the Hashes of the dangling heads.
 func (l *CoLog) Heads() []Hash {
 	return l.heads.Sorted()
 }
 
+// FetchFromHead takes a Hash `head' and recursively adds the entries behind the head
 func (l *CoLog) FetchFromHead(head Hash) error {
+
 	if _, ok := l.prev[head]; ok {
 		return nil
 	}
@@ -301,7 +310,7 @@ func (l *CoLog) FetchFromHead(head Hash) error {
 		}
 
 		// check if already known
-		if _, ok := l.prev[h]; ok {
+		if l.contains(h) {
 			continue
 		}
 
@@ -327,14 +336,19 @@ func (l *CoLog) FetchFromHead(head Hash) error {
 			// mark for recursion
 			push(hPrev)
 		}
+
+		l.chans.Send(e)
 	}
 
 	return nil
 }
 
+// Watch returns an Entry chan, notifying you of additions to the log
 func (l *CoLog) Watch() <-chan *Entry {
-	ch := make(chan *Entry)
+	return l.chans.New()
+}
 
-	l.chans.Add(ch)
-	return ch
+// Unwatch drops channel ch from the list of channels that are being written to
+func (l *CoLog) Unwatch(ch <-chan *Entry) {
+	l.chans.Drop(ch)
 }

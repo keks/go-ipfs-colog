@@ -1,6 +1,9 @@
 package colog
 
-import "encoding/json"
+import (
+	"encoding/json"
+	"sync"
+)
 
 type Entry struct {
 	Hash  Hash            `json:"-"`
@@ -9,12 +12,12 @@ type Entry struct {
 }
 
 func NewEntry() *Entry {
-	return &Entry{Prev: make(HashSet)}
+	return &Entry{Prev: NewHashSet()}
 }
 
 func (e *Entry) set(v interface{}) (err error) {
 	if e.Prev == nil {
-		e.Prev = make(HashSet)
+		e.Prev = NewHashSet()
 	}
 
 	e.Value, err = json.Marshal(v)
@@ -28,10 +31,53 @@ func (e *Entry) Get(v interface{}) (err error) {
 func (e *Entry) GetString() string {
 	var s string
 
-	json.Unmarshal(e.Value, &s)
+	e.Get(&s)
 	return s
 }
 
 func (e *Entry) String() string {
 	return "{ " + e.Hash.String() + ": " + string(e.Value) + " " + e.Prev.String() + " }"
+}
+
+// set of entry channels
+type entryChanSet struct {
+	sync.Mutex
+	chans map[chan<- *Entry]struct{}
+}
+
+func newEntryChanSet() *entryChanSet {
+	return &entryChanSet{
+		chans: make(map[chan<- *Entry]struct{}),
+	}
+}
+
+func (cs *entryChanSet) Add(ch chan<- *Entry) {
+	cs.Lock()
+	cs.chans[ch] = struct{}{}
+	cs.Unlock()
+}
+
+func (cs *entryChanSet) Drop(ch chan<- *Entry) {
+	cs.Lock()
+	delete(cs.chans, ch)
+	cs.Unlock()
+}
+
+func (cs *entryChanSet) Send(e *Entry) {
+	cs.Lock()
+
+	for ch := range cs.chans {
+		go func() {
+			defer func() {
+				if r := recover(); r != nil {
+					ch := r.(chan<- *Entry)
+					cs.Drop(ch)
+				}
+			}()
+
+			ch <- e
+		}()
+	}
+
+	cs.Unlock()
 }

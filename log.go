@@ -2,6 +2,7 @@ package colog
 
 import (
 	"encoding/json"
+	"sync"
 
 	"github.com/keks/go-ipfs-colog/immutabledb"
 )
@@ -18,6 +19,8 @@ func (h Hash) String() string {
 
 // CoLog is a concurrent log
 type CoLog struct {
+	mutex sync.Mutex
+
 	db immutabledb.ImmutableDB
 
 	next, prev Index
@@ -27,7 +30,6 @@ type CoLog struct {
 
 // New returns a concurrent log
 func New(db immutabledb.ImmutableDB) *CoLog {
-	// TODO: iterate over db to build index
 	// TODO: make index persistent
 
 	return &CoLog{
@@ -42,6 +44,9 @@ func New(db immutabledb.ImmutableDB) *CoLog {
 
 // Add adds data to the colog and returns the resulting entry
 func (l *CoLog) Add(data interface{}) (*Entry, error) {
+	l.mutex.Lock()
+	defer l.mutex.Unlock()
+
 	// prepare entry
 	e := &Entry{
 		Prev: l.heads.Copy(),
@@ -106,6 +111,13 @@ func (l *CoLog) Get(h Hash) (*Entry, error) {
 
 // Contains returns whether an Entry with Hash h is stored
 func (l *CoLog) Contains(h Hash) bool {
+	l.mutex.Lock()
+	defer l.mutex.Unlock()
+
+	return l.contains(h)
+}
+
+func (l *CoLog) contains(h Hash) bool {
 	hs, ok := l.prev[h]
 
 	delete(hs, "")
@@ -115,11 +127,14 @@ func (l *CoLog) Contains(h Hash) bool {
 
 // Join merges colog `other' into `l'
 func (l *CoLog) Join(other *CoLog) error {
+	l.mutex.Lock()
+	defer l.mutex.Unlock()
+
 	newHeads := make(HashSet)
 
 	for h := range other.prev {
 		// skip known hashes
-		if l.Contains(h) {
+		if l.contains(h) {
 			continue
 		}
 
@@ -150,7 +165,7 @@ func (l *CoLog) Join(other *CoLog) error {
 
 			// case 2: hash is head in l1, but not in l2 and is not part of l2
 			//  => remains head
-			if !other.Contains(head) {
+			if !other.contains(head) {
 				newHeads.Set(head)
 				continue
 			}
@@ -168,7 +183,7 @@ func (l *CoLog) Join(other *CoLog) error {
 
 			// case 4: hash is head in l2, but not in l1 and is not part of l1
 			//  => remains head
-			if !l.Contains(head) {
+			if !l.contains(head) {
 				newHeads.Set(head)
 				continue
 			}
@@ -193,6 +208,9 @@ func (l *CoLog) Join(other *CoLog) error {
 
 // Items returns the Entries in canonical order
 func (l *CoLog) Items() []*Entry {
+	l.mutex.Lock()
+	defer l.mutex.Unlock()
+
 	// output Entry slice
 	out := make([]*Entry, 0, len(l.prev))
 

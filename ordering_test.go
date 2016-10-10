@@ -15,9 +15,9 @@ func check(err error) {
 }
 
 func ExampleItemsOrdering() {
-	l1 := New("l1", ipfsdb)
-	l2 := New("l2", ipfsdb)
-	l3 := New("l3", ipfsdb)
+	l1 := New(ipfsdb)
+	l2 := New(ipfsdb)
+	l3 := New(ipfsdb)
 
 	checkadd(l1.Add("init"))
 	check(l2.Join(l1))

@@ -9,7 +9,6 @@ import (
 
 var ipfsdb = db.New()
 
-var id = "abc"
 var value1 = "Hello1"
 var value2 = "Hello2"
 var value3 = "Hello3"
@@ -18,14 +17,10 @@ var hash1 = "QmbiruS6UMT6gT3JBHtZNWKitEssyUQzYu8k4gGd6rhzNc"
 /* Create */
 
 func TestNew(t *testing.T) {
-	var log1 = New(id, ipfsdb)
+	var log1 = New(ipfsdb)
 
 	if log1 == nil {
 		t.Fatalf("Couldn't create a log")
-	}
-
-	if log1.Id != id {
-		t.Fatalf("Id not set")
 	}
 
 	if log1.db == nil {
@@ -40,7 +35,7 @@ func TestNew(t *testing.T) {
 /* Add */
 
 func TestAdd(t *testing.T) {
-	var log1 = New(id, ipfsdb)
+	var log1 = New(ipfsdb)
 
 	one, err := log1.Add(value1)
 	if err != nil {
@@ -71,7 +66,7 @@ func TestAdd(t *testing.T) {
 }
 
 func ExampleAdd_one() {
-	var log1 = New(id, ipfsdb)
+	var log1 = New(ipfsdb)
 
 	one, err := log1.Add(value1)
 	if err != nil {
@@ -88,7 +83,7 @@ func ExampleAdd_one() {
 }
 
 func ExampleAdd_two() {
-	var log1 = New(id, ipfsdb)
+	var log1 = New(ipfsdb)
 
 	log1.Add(value1)
 	log1.Add(value2)
@@ -111,7 +106,7 @@ func ExampleAdd_two() {
 }
 
 func ExampleAdd_three() {
-	var log1 = New(id, ipfsdb)
+	var log1 = New(ipfsdb)
 
 	log1.Add(value1)
 	log1.Add(value2)
@@ -144,7 +139,7 @@ func ExampleAdd_three() {
 }
 
 func BenchmarkAdd(b *testing.B) {
-	var log1 = New(id, ipfsdb)
+	var log1 = New(ipfsdb)
 
 	for i := 0; i < b.N; i++ {
 		log1.Add(value1)
@@ -154,8 +149,8 @@ func BenchmarkAdd(b *testing.B) {
 /* Join */
 
 func TestJoin(t *testing.T) {
-	var log1 = New(id, ipfsdb)
-	var log2 = New(id, ipfsdb)
+	var log1 = New(ipfsdb)
+	var log2 = New(ipfsdb)
 
 	log1.Add(value1)
 	log2.Add(value2)
@@ -174,8 +169,8 @@ func TestJoin(t *testing.T) {
 }
 
 func ExampleJoin_one() {
-	var log1 = New(id, ipfsdb)
-	var log2 = New(id, ipfsdb)
+	var log1 = New(ipfsdb)
+	var log2 = New(ipfsdb)
 
 	log1.Add(value1)
 	log2.Add(value2)
@@ -200,8 +195,8 @@ func ExampleJoin_one() {
 }
 
 func BenchmarkJoin(b *testing.B) {
-	var log1 = New(id, ipfsdb)
-	var log2 = New(id, ipfsdb)
+	var log1 = New(ipfsdb)
+	var log2 = New(ipfsdb)
 
 	log1.Add(value1)
 	log2.Add(value2)

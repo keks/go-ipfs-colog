@@ -2,12 +2,9 @@ package colog
 
 import (
 	"encoding/json"
-	"log"
 
 	"github.com/keks/go-ipfs-colog/immutabledb"
 )
-
-var joinpass int
 
 // hash is the base58 string representation of a multihash
 type Hash string
@@ -21,7 +18,6 @@ func (h Hash) String() string {
 
 // CoLog is a concurrent log
 type CoLog struct {
-	Id string
 	db immutabledb.ImmutableDB
 
 	next, prev Index
@@ -30,12 +26,11 @@ type CoLog struct {
 }
 
 // New returns a concurrent log
-func New(id string, db immutabledb.ImmutableDB) *CoLog {
+func New(db immutabledb.ImmutableDB) *CoLog {
 	// TODO: iterate over db to build index
 	// TODO: make index persistent
 
 	return &CoLog{
-		Id: id,
 		db: db,
 
 		next: make(Index),
@@ -120,14 +115,11 @@ func (l *CoLog) Contains(h Hash) bool {
 
 // Join merges colog `other' into `l'
 func (l *CoLog) Join(other *CoLog) error {
-	defer func() { joinpass++ }()
-
 	newHeads := make(HashSet)
 
 	for h := range other.prev {
 		// skip known hashes
 		if l.Contains(h) {
-			//	log.Printf("join#%d %v <- %v - entry %v already there - continuing\n", joinpass, l.Id, other.Id, h)
 			continue
 		}
 
@@ -238,7 +230,6 @@ func (l *CoLog) Items() []*Entry {
 		// get Entry
 		e, err := l.Get(h)
 		if err != nil {
-			log.Printf("error fetching item with hash %#s. continuing.\n", h)
 			continue
 		}
 
@@ -259,30 +250,6 @@ func (l *CoLog) Items() []*Entry {
 	}
 
 	return out
-}
-
-func (l *CoLog) Print() {
-	log.Println("next:", l.next)
-	log.Println("prev:", l.prev)
-
-	for _, e := range l.Items() {
-		log.Println("Entry:", e.Hash)
-
-		data, err := l.db.Get(string(e.Hash))
-		if err != nil {
-			log.Panic(e.Hash, err)
-		}
-
-		log.Println("Data:", string(data))
-
-		if len(e.Prev) > 0 {
-			for p := range e.Prev {
-				log.Println("Prev:", p)
-			}
-		}
-
-		log.Println()
-	}
 }
 
 func (l *CoLog) Heads() []Hash {
@@ -335,7 +302,6 @@ func (l *CoLog) FetchFromHead(head Hash) error {
 		// get Entry
 		e, err := l.Get(h)
 		if err != nil {
-			log.Printf("error fetching item with hash %#x. continuing.\n", h)
 			continue
 		}
 

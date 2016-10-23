@@ -2,6 +2,7 @@ package colog
 
 import (
 	"encoding/json"
+	"io"
 	"sync"
 
 	"github.com/keks/go-ipfs-colog/immutabledb"
@@ -113,6 +114,20 @@ func (l *CoLog) Contains(h Hash) bool {
 	return l.contains(h)
 }
 
+func (l *CoLog) Nexts(h Hash) HashSet {
+	l.mutex.Lock()
+	defer l.mutex.Unlock()
+
+	return l.next[h]
+}
+
+func (l *CoLog) Prevs(h Hash) HashSet {
+	l.mutex.Lock()
+	defer l.mutex.Unlock()
+
+	return l.prev[h]
+}
+
 func (l *CoLog) contains(h Hash) bool {
 	hs, ok := l.prev[h]
 
@@ -205,13 +220,23 @@ func (l *CoLog) Join(other *CoLog) error {
 	return nil
 }
 
-// Items returns the Entries in canonical order
-func (l *CoLog) Items() []*Entry {
+type QueryBound struct {
+	Hash
+	Closed bool // as in closed interval
+}
+
+// Query defines which part of the colog should be queried
+type Query struct {
+	Before, After QueryBound
+}
+
+// Result is the result of a Query
+type Result func() (*Entry, error)
+
+// Query traverses the part of the colog specified by Query
+func (l *CoLog) Query(qry Query) Result {
 	l.mutex.Lock()
 	defer l.mutex.Unlock()
-
-	// output Entry slice
-	out := make([]*Entry, 0, len(l.prev))
 
 	// keeps track how many of the revious pointers have been added to out already
 	addedPrevs := map[Hash]int{}
@@ -232,26 +257,50 @@ func (l *CoLog) Items() []*Entry {
 		return h
 	}
 
-	// start with root nodes: nodes with prev=[""]
-	push(l.next[""].Sorted()...)
+	if qry.After.Hash == "" {
+		// if empty Hash add all root nodes
+		push(l.next[""].Sorted()...)
+	} else if qry.After.Closed {
+		// if inclusive add hash directly
+		push(qry.After.Hash)
+	} else {
+		// otherwise add children
+		push(l.next[qry.After.Hash].Sorted()...)
+	}
 
-	for len(stack) > 0 {
+	return func() (*Entry, error) {
+		if len(stack) == 0 {
+			return nil, io.EOF
+		}
+
 		// pop hash from stack
 		h := pop()
 
-		//ignore root
+		// ignore root
 		if h == "" {
-			continue
+			if len(stack) == 0 {
+				return nil, io.EOF
+			}
+
+			h = pop()
 		}
 
 		// get Entry
 		e, err := l.Get(h)
 		if err != nil {
-			continue
+			return e, err
 		}
 
-		// append Entry
-		out = append(out, e)
+		// did we reach the end?
+		if h == qry.Before.Hash {
+			stack = []Hash{}
+
+			if !qry.Before.Closed {
+				return nil, io.EOF
+			} else {
+				return e, nil
+			}
+		}
 
 		// mark that an Entry was added in all next hashes
 		for hNext := range l.next[h] {
@@ -264,6 +313,34 @@ func (l *CoLog) Items() []*Entry {
 				push(hNext)
 			}
 		}
+
+		return e, nil
+	}
+}
+
+// Items returns the Entries in canonical order
+func (l *CoLog) Items() []*Entry {
+	// output Entry slice
+	out := make([]*Entry, 0, len(l.prev))
+
+	// query everything
+	res := l.Query(Query{})
+
+	var (
+		e   *Entry
+		err error
+	)
+
+	for err == nil {
+		e, err = res()
+
+		if err == nil {
+			out = append(out, e)
+		}
+	}
+
+	if err != io.EOF {
+		panic(err)
 	}
 
 	return out
@@ -276,6 +353,8 @@ func (l *CoLog) Heads() []Hash {
 
 // FetchFromHead takes a Hash `head' and recursively adds the entries behind the head
 func (l *CoLog) FetchFromHead(head Hash) error {
+	l.mutex.Lock()
+	defer l.mutex.Unlock()
 
 	if _, ok := l.prev[head]; ok {
 		return nil

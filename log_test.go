@@ -157,7 +157,8 @@ func TestJoin(t *testing.T) {
 	items := log1.Items()
 
 	if len(items) != 2 {
-		t.Fatalf("Wrong number of entries: %i", len(items))
+		t.Log("items:", items)
+		t.Fatalf("Wrong number of entries: %d", len(items))
 	}
 
 	// Make sure the joined log doesn't have pointers to the joined logs

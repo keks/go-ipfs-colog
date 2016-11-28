@@ -2,15 +2,15 @@ package idb
 
 import (
 	shell "github.com/ipfs/go-ipfs-api"
-	gx "github.com/whyrusleeping/gx/gxutil"
 )
 
 type DB struct {
 	sh *shell.Shell
 }
 
-func New() *DB {
-	return &DB{gx.NewShell()}
+func New() (*DB, error) {
+	sh, err := getLocalApiShell()
+	return &DB{sh}, err
 }
 
 func (db *DB) Put(data []byte) (string, error) {

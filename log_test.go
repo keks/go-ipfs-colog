@@ -2,12 +2,21 @@ package colog
 
 import (
 	"fmt"
-	db "github.com/keks/go-ipfs-colog/immutabledb/ipfs-api"
 	"strings"
 	"testing"
+
+	db "github.com/keks/go-ipfs-colog/immutabledb/ipfs-api"
 )
 
-var ipfsdb = db.New()
+var ipfsdb *db.DB
+
+func init() {
+	var err error
+	ipfsdb, err = db.New()
+	if err != nil {
+		panic(err)
+	}
+}
 
 var value1 = "Hello1"
 var value2 = "Hello2"

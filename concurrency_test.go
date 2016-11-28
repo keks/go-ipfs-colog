@@ -6,7 +6,7 @@ import (
 	"sync"
 )
 
-func ExampleConcurrentAccess() {
+func ExampleCoLog_concurrentAccess() {
 	var wg sync.WaitGroup
 
 	l := New(ipfsdb)

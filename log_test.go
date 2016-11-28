@@ -63,7 +63,7 @@ func TestAdd(t *testing.T) {
 	}
 }
 
-func ExampleAdd_one() {
+func ExampleCoLog_Add_one() {
 	var log1 = New(ipfsdb)
 
 	one, err := log1.Add(value1)
@@ -80,7 +80,7 @@ func ExampleAdd_one() {
 	// { null }
 }
 
-func ExampleAdd_two() {
+func ExampleCoLog_Add_two() {
 	var log1 = New(ipfsdb)
 
 	log1.Add(value1)
@@ -103,7 +103,7 @@ func ExampleAdd_two() {
 	// QmbiruS6UMT6gT3JBHtZNWKitEssyUQzYu8k4gGd6rhzNc
 }
 
-func ExampleAdd_three() {
+func ExampleCoLog_Add_three() {
 	var log1 = New(ipfsdb)
 
 	log1.Add(value1)
@@ -167,7 +167,7 @@ func TestJoin(t *testing.T) {
 
 }
 
-func ExampleJoin_one() {
+func ExampleCoLog_Join_one() {
 	var log1 = New(ipfsdb)
 	var log2 = New(ipfsdb)
 

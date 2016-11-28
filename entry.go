@@ -5,12 +5,14 @@ import (
 	"sync"
 )
 
+// Entry is an element of the log.
 type Entry struct {
 	Hash  Hash            `json:"-"`
 	Value json.RawMessage `json:"payload"`
 	Prev  HashSet         `json:"next"`
 }
 
+// NewEntry returns a new Entry.
 func NewEntry() *Entry {
 	return &Entry{Prev: NewHashSet()}
 }
@@ -24,10 +26,12 @@ func (e *Entry) set(v interface{}) (err error) {
 	return err
 }
 
+// Get writes the value that is serialized in the entry into v. v needs to be a pointer.
 func (e *Entry) Get(v interface{}) (err error) {
 	return json.Unmarshal(e.Value, v)
 }
 
+// GetString returns the string stored in the Entry. If the value stored is not a string, an empty string is returned.
 func (e *Entry) GetString() string {
 	var s string
 
@@ -35,6 +39,7 @@ func (e *Entry) GetString() string {
 	return s
 }
 
+// String returns the string representation of the Entry.
 func (e *Entry) String() string {
 	return "{ " + e.Hash.String() + ": " + string(e.Value) + " " + e.Prev.String() + " }"
 }
@@ -75,9 +80,9 @@ func (cs *entryChanSet) Send(e *Entry) {
 	cs.Lock()
 
 	for ch := range cs.chans {
-		go func() {
-			ch <- e
-		}()
+		go func(ch_ chan<- *Entry) {
+			ch_ <- e
+		}(ch)
 	}
 
 	cs.Unlock()

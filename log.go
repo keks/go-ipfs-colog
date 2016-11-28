@@ -106,7 +106,7 @@ func (l *CoLog) Get(h Hash) (*Entry, error) {
 	return e, nil
 }
 
-// Contains returns whether an Entry with Hash h is stored
+// Contains returns whether an Entry with Hash h is stored.
 func (l *CoLog) Contains(h Hash) bool {
 	l.mutex.Lock()
 	defer l.mutex.Unlock()
@@ -114,6 +114,7 @@ func (l *CoLog) Contains(h Hash) bool {
 	return l.contains(h)
 }
 
+// Nexts returns the set of hashes that reference hash h.
 func (l *CoLog) Nexts(h Hash) HashSet {
 	l.mutex.Lock()
 	defer l.mutex.Unlock()
@@ -121,6 +122,7 @@ func (l *CoLog) Nexts(h Hash) HashSet {
 	return l.next[h]
 }
 
+// Prevs returns the set of hashes that are referenced by hash h.
 func (l *CoLog) Prevs(h Hash) HashSet {
 	l.mutex.Lock()
 	defer l.mutex.Unlock()
@@ -220,6 +222,7 @@ func (l *CoLog) Join(other *CoLog) error {
 	return nil
 }
 
+// QueryBound defines a bound for a query.
 type QueryBound struct {
 	Hash
 	Closed bool // as in closed interval
@@ -297,9 +300,9 @@ func (l *CoLog) Query(qry Query) Result {
 
 			if !qry.Before.Closed {
 				return nil, io.EOF
-			} else {
-				return e, nil
 			}
+
+			return e, nil
 		}
 
 		// mark that an Entry was added in all next hashes

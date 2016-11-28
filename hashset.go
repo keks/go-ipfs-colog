@@ -20,6 +20,7 @@ func (h Hash) String() string {
 // HashSet is a set of Hashes
 type HashSet map[Hash]struct{}
 
+// NewHashSet returns a new empty HashSet.
 func NewHashSet() HashSet {
 	return make(HashSet)
 }
@@ -29,7 +30,7 @@ func (s HashSet) Drop(h Hash) {
 	delete(s, h)
 }
 
-// Set adds Hash h to the set
+// Add adds Hash h to the set
 func (s HashSet) Add(h Hash) {
 	s[h] = struct{}{}
 }

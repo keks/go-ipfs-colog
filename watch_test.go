@@ -4,7 +4,7 @@ import (
 	"fmt"
 )
 
-func ExampleWatch() {
+func ExampleCoLog_Watch() {
 	l1 := New(ipfsdb)
 	l2 := New(ipfsdb)
 	l3 := New(ipfsdb)
@@ -50,7 +50,7 @@ func ExampleWatch() {
 	//qrstu
 }
 
-func ExampleWatch_close() {
+func ExampleCoLog_Unwatch() {
 	l1 := New(ipfsdb)
 	l2 := New(ipfsdb)
 

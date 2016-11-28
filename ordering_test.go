@@ -16,7 +16,7 @@ func check(err error) {
 	}
 }
 
-func ExampleItemsOrdering() {
+func ExampleCoLog_Items_ordering() {
 	l1 := New(ipfsdb)
 	l2 := New(ipfsdb)
 	l3 := New(ipfsdb)
